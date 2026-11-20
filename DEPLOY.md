@@ -7,7 +7,7 @@
 ## 需要的雲端服務
 
 1. 將 `outputs` 資料夾內容推到 GitHub repository（建議設為 private）。不要加入 `echo-data.json`、網址或 PID；`.gitignore` 已排除資料和隧道檔。
-2. 在 Vercel 匯入 repository。此專案已加入 `vercel.json`，根網址會提供原有 Threads 風格頁面，`/api/*` 由 Vercel Function 處理。
+2. 在 Vercel 匯入 repository。Vercel 會自動建置 `api` 資料夾中的 Function；`vercel.json` 只負責路由，不再使用舊式 `builds` 設定。根網址會提供原有 Threads 風格頁面，`/api/*` 由 Vercel Function 處理。
 3. 在 Vercel Storage 或 Marketplace 建立 Upstash Redis，並建立 Vercel Blob store。
 4. 在 Vercel 專案 **Settings → Environment Variables** 設定：
 
@@ -15,7 +15,7 @@
    - `UPSTASH_REDIS_REST_TOKEN`
    - `BLOB_READ_WRITE_TOKEN`（建立 Blob store 時提供）
 
-5. 重新部署。成功後開啟 `https://<專案名稱>.vercel.app/api/health`，應看到 `{"ok":true,"storage":"blob","apiVersion":"upstash-array-v2"}`。若沒有 `apiVersion`，代表目前網域尚未切到這次修正的部署。
+5. 重新部署。成功後開啟 `https://<專案名稱>.vercel.app/api/health`，應看到 `{"ok":true,"storage":"upstash-redis","mediaStorage":"vercel-blob","redis":"connected","apiVersion":"upstash-array-v3"}`。若沒有 `apiVersion`，代表目前網域尚未切到這次修正的部署。
 
 ## 搬移現有貼文和媒體
 

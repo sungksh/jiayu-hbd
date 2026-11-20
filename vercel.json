@@ -1,9 +1,5 @@
 {
-  "version": 2,
-  "builds": [
-    { "src": "api/[...path].js", "use": "@vercel/node" },
-    { "src": "echo-social.html", "use": "@vercel/static" }
-  ],
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[...path].js" },
     { "src": "/(.*)", "dest": "/echo-social.html" }

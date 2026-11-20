@@ -71,7 +71,7 @@ function send(res, status, data) { res.status(status).json(data); }
 function idFromPath(pathname) { return decodeURIComponent(pathname.split('/')[3] || ''); }
 
 module.exports = async (req, res) => {
-  res.setHeader('X-Social-API-Version', 'upstash-array-v2');
+  res.setHeader('X-Social-API-Version', 'upstash-array-v3');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -87,7 +87,17 @@ module.exports = async (req, res) => {
       }) });
       return res.status(200).json(jsonResponse);
     }
-    if (pathname === '/api/health' && req.method === 'GET') return send(res, 200, { ok: true, storage: 'blob', apiVersion: 'upstash-array-v2' });
+    if (pathname === '/api/health' && req.method === 'GET') {
+      const redisStatus = await redis(['PING']);
+      if (redisStatus !== 'PONG') throw new Error('Upstash Redis PING 未成功');
+      return send(res, 200, {
+        ok: true,
+        storage: 'upstash-redis',
+        mediaStorage: process.env.BLOB_READ_WRITE_TOKEN ? 'vercel-blob' : 'unconfigured',
+        redis: 'connected',
+        apiVersion: 'upstash-array-v3'
+      });
+    }
     let state = await readState();
     if (pathname === '/api/state' && req.method === 'GET') return send(res, 200, state);
     if (pathname === '/api/bootstrap' && req.method === 'POST') {
