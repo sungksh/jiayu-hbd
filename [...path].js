@@ -10,26 +10,62 @@ async function redis(command) {
   const base = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!base || !token) throw new Error('尚未設定 Upstash Redis，請依 DEPLOY.md 加入環境變數');
-  const response = await fetch(base, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ command }) });
-  const result = await response.json();
+  if (!Array.isArray(command) || !command.length) throw new Error('Upstash 命令格式必須是非空 JSON 陣列');
+  const response = await fetch(base, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(command) });
+  let result;
+  try { result = await response.json(); }
+  catch { throw new Error(`Upstash 回傳了非 JSON 回應（HTTP ${response.status}）`); }
   if (!response.ok || result.error) throw new Error(result.error || '資料庫連線失敗');
+  if (!Object.prototype.hasOwnProperty.call(result, 'result')) throw new Error('Upstash 回應缺少 result 欄位');
   return result.result;
 }
 
-async function readState() {
-  const value = await redis(['GET', KEY]);
-  if (!value) return structuredClone(initial);
-  const state = JSON.parse(value);
-  state.posts = Array.isArray(state.posts) ? state.posts : [];
-  state.avatars = state.avatars || {}; state.profiles = state.profiles || {};
-  state.communities = Array.isArray(state.communities) ? state.communities : initial.communities;
-  return state;
+function emptyState() { return structuredClone(initial); }
+function isRecord(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
+function parseStoredValue(value) {
+  let current = value;
+  for (let i = 0; i < 3 && typeof current === 'string'; i++) {
+    try { current = JSON.parse(current); }
+    catch { console.warn('Ignoring malformed JSON stored in Upstash state key'); return null; }
+  }
+  return current;
 }
-async function writeState(state) { await redis(['SET', KEY, JSON.stringify(state)]); }
+function normalizeState(value) {
+  value = parseStoredValue(value);
+  if (isRecord(value) && isRecord(value.state)) value = value.state;
+  if (Array.isArray(value)) value = { posts: value };
+  if (!isRecord(value)) return emptyState();
+
+  const posts = Array.isArray(value.posts) ? value.posts.filter(isRecord).map(post => ({
+    ...post,
+    media: Array.isArray(post.media) ? post.media.filter(isRecord) : [],
+    comments: Array.isArray(post.comments) ? post.comments.filter(isRecord) : [],
+    likes: Array.isArray(post.likes) ? post.likes : [],
+    repostedBy: Array.isArray(post.repostedBy) ? post.repostedBy : [],
+    bookmarkedBy: Array.isArray(post.bookmarkedBy) ? post.bookmarkedBy : []
+  })) : [];
+  return {
+    ...emptyState(), ...value, posts,
+    avatars: isRecord(value.avatars) ? value.avatars : {},
+    profiles: isRecord(value.profiles) ? value.profiles : {},
+    communities: Array.isArray(value.communities) ? value.communities : initial.communities
+  };
+}
+
+async function readState() {
+  let value;
+  try { value = await redis(['GET', KEY]); }
+  catch (error) {
+    if (!/wrongtype/i.test(error.message || '')) throw error;
+    value = await redis(['JSON.GET', KEY]);
+  }
+  return normalizeState(value);
+}
+async function writeState(state) { await redis(['SET', KEY, JSON.stringify(normalizeState(state))]); }
 async function body(req) {
   const chunks = []; let size = 0;
   for await (const chunk of req) { size += chunk.length; if (size > 1024 * 1024) throw new Error('請求資料過大'); chunks.push(chunk); }
-  return chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) : {};
+  return chunks.length ? JSON.parse(Buffer.concat(chunks.map(chunk => Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))).toString('utf8')) : {};
 }
 function send(res, status, data) { res.status(status).json(data); }
 function idFromPath(pathname) { return decodeURIComponent(pathname.split('/')[3] || ''); }

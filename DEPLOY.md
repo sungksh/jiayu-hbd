@@ -2,6 +2,8 @@
 
 頁面本身和原有互動均保留：發文、改文、媒體、頭貼、留言、按讚、轉發、收藏、使用者名稱、社群編輯、搜尋與動態分類。部署版將原本長連線改為每 2.5 秒讀取雲端狀態；貼文資料存在 Upstash Redis，圖片和影片存在 Vercel Blob。`echo-server.js` 仍保留，供本機執行。
 
+雲端 `/api/state` 回傳狀態物件，其中 `posts` 永遠是 JSON 陣列（無資料時為 `[]`）。Upstash REST 命令以 JSON 陣列格式傳送；既有 Redis 值若為空值、陣列或可解析的物件／字串，API 會正規化後再交給前端。
+
 ## 需要的雲端服務
 
 1. 將 `outputs` 資料夾內容推到 GitHub repository（建議設為 private）。不要加入 `echo-data.json`、網址或 PID；`.gitignore` 已排除資料和隧道檔。

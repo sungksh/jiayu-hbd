@@ -21,7 +21,7 @@ async function migrateUrl(value) {
     post.avatar = await migrateUrl(post.avatar);
     for (const media of post.media || []) media.url = await migrateUrl(media.url);
   }
-  const response = await fetch(process.env.UPSTASH_REDIS_REST_URL, { method: 'POST', headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ command: ['SET', 'echo-social-state-v1', JSON.stringify(state)] }) });
+  const response = await fetch(process.env.UPSTASH_REDIS_REST_URL, { method: 'POST', headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(['SET', 'echo-social-state-v1', JSON.stringify(state)]) });
   const result = await response.json();
   if (!response.ok || result.error) throw new Error(result.error || 'Upstash 寫入失敗');
   console.log(`已匯入 ${state.posts?.length || 0} 則貼文與使用者資料。`);

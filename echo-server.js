@@ -10,9 +10,11 @@ const DB = path.join(DATA_DIR, 'echo-data.json');
 const PORT = Number(process.env.PORT || 4173);
 const defaultCommunities=[{icon:'🔴',name:'Pokémon Threads'},{icon:'🟩',name:'Minecraft'},{icon:'🕹️',name:'Gaming Threads'}];
 let state = { posts: [], avatars: {}, profiles: {}, communities: defaultCommunities };
-try { state = JSON.parse(fs.readFileSync(DB, 'utf8')); } catch {}
+try { const saved = JSON.parse(fs.readFileSync(DB, 'utf8')); if (Array.isArray(saved)) state.posts = saved; else if (saved && typeof saved === 'object') state = { ...state, ...saved }; } catch {}
+state.posts=Array.isArray(state.posts)?state.posts:[];
+state.avatars=state.avatars&&typeof state.avatars==='object'&&!Array.isArray(state.avatars)?state.avatars:{};
 state.communities=Array.isArray(state.communities)?state.communities:defaultCommunities;
-state.profiles=state.profiles&&typeof state.profiles==='object'?state.profiles:{};
+state.profiles=state.profiles&&typeof state.profiles==='object'&&!Array.isArray(state.profiles)?state.profiles:{};
 const clients = new Set();
 function save(){ fs.writeFileSync(DB, JSON.stringify(state, null, 2)); }
 function send(res, code, obj){ res.writeHead(code, {'Content-Type':'application/json; charset=utf-8','Access-Control-Allow-Origin':'*'}); res.end(JSON.stringify(obj)); }
