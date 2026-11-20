@@ -1,0 +1,16 @@
+{
+  "name": "threads-social-prototype",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Threads-style community site prototype",
+  "scripts": {
+    "start": "node echo-server.js",
+    "migrate:vercel": "node scripts/migrate-to-vercel.js"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
