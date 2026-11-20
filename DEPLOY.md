@@ -15,7 +15,7 @@
    - `UPSTASH_REDIS_REST_TOKEN`
    - `BLOB_READ_WRITE_TOKEN`（建立 Blob store 時提供）
 
-5. 重新部署。成功後開啟 `https://<專案名稱>.vercel.app/api/health`，應看到 `{"ok":true}`。
+5. 重新部署。成功後開啟 `https://<專案名稱>.vercel.app/api/health`，應看到 `{"ok":true,"storage":"blob","apiVersion":"upstash-array-v2"}`。若沒有 `apiVersion`，代表目前網域尚未切到這次修正的部署。
 
 ## 搬移現有貼文和媒體
 
